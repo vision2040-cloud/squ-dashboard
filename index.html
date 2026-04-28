@@ -566,6 +566,7 @@ function popFlt(){
 // ═══ REFRESH ═══
 function doRefresh(){
   var btn=g('rfBtn');btn.disabled=true;btn.classList.add('spin');
+  console.log('Fetching:', PUB_CSV_URL);
   var url = PUB_CSV_URL + '&t=' + Date.now();
   
   fetch(url, {cache:'no-store'})
@@ -574,8 +575,10 @@ function doRefresh(){
       return r.text();
     })
     .then(function(txt){
+      console.log('CSV received, length:', txt.length, 'first 200:', txt.substring(0,200));
       var rows = parseCSV(txt);
-      if(!rows || rows.length < 10) throw new Error('بيانات قصيرة');
+      console.log('Parsed rows:', rows.length, 'row8:', rows[8] ? rows[8].slice(0,6) : 'none');
+      if(!rows || rows.length < 10) throw new Error('بيانات قصيرة: ' + rows.length);
       var parsed = parseRowsFull(rows);
       if(!parsed || !parsed.l2 || parsed.l2.length < 5) throw new Error('هيكل بيانات غير صحيح');
       DB = parsed;
@@ -587,17 +590,18 @@ function doRefresh(){
       toast('✅ تم تحديث البيانات من الملف مباشرة','#00a86b');
     })
     .catch(function(err){
+      console.error('Refresh error:', err);
+      // Show detailed error for debugging
+      var errMsg = err.message || String(err);
+      toast('❌ خطأ: ' + errMsg.substring(0,80),'#e53e3e');
       // Try cache
       try{
         var c = JSON.parse(localStorage.getItem('squ_c') || 'null');
         if(c && c.d && c.d.l2 && c.d.l2.length > 0){
           DB = c.d; renderAll(); setLive('cache');
           st('tsVal', new Date(c.ts).toLocaleString('ar-OM',{dateStyle:'short',timeStyle:'short'}) + ' (مخزّن)');
-          toast('⚠️ تعذّر الاتصال — يُعرض بيانات مخزّنة: ' + err.message,'#d97706');
-        } else {
-          toast('❌ تعذّر الاتصال: ' + err.message,'#e53e3e');
         }
-      }catch(e){ toast('❌ تعذّر الاتصال: ' + err.message,'#e53e3e'); }
+      }catch(e){}
     })
     .finally(function(){
       btn.disabled=false; btn.classList.remove('spin');
