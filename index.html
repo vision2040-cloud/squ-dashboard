@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تشخيص الرابط الجديد</title>
+<style>
+body{font-family:monospace;padding:20px;font-size:12px;background:#f0f4f8}
+.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.ok{color:#276749;background:#f0fff4;border:1px solid #68d391;padding:8px 12px;border-radius:6px;margin:4px 0}
+.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181;padding:8px 12px;border-radius:6px;margin:4px 0}
+.info{color:#1a6195;background:#ebf8ff;border:1px solid #90cdf4;padding:8px 12px;border-radius:6px;margin:4px 0}
+pre{background:#1a202c;color:#9ae6b4;padding:12px;border-radius:6px;font-size:.75rem;overflow:auto;max-height:250px;white-space:pre-wrap;word-break:break-all}
+button{background:#1a3a5c;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;margin:3px;font-family:monospace}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #e2e8f0;padding:4px 8px;font-size:11px}
+th{background:#1a3a5c;color:#fff}
+.hl{background:#fef3c7}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2 style="color:#1a3a5c;margin-bottom:12px">🔍 تشخيص الرابط الجديد (gid=366726450)</h2>
+  <button onclick="run()">▶ اختبار الآن</button>
+  <button onclick="document.getElementById('out').innerHTML=''">مسح</button>
+  <div id="out" style="margin-top:12px"></div>
+</div>
+
+<script>
+var NEW_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRW21kax9btaMQ5QVhXUgh9jnXC7PSQvpQI9eNRFjAfFNIFgMhM2wHjcebEbz-fgbamqUf-tQ77nU2z/pub?gid=366726450&single=true&output=csv';
+var OLD_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRW21kax9btaMQ5QVhXUgh9jnXC7PSQvpQI9eNRFjAfFNIFgMhM2wHjcebEbz-fgbamqUf-tQ77nU2z/pub?output=csv';
+
+function parseCSV(txt){
+  var rows=[],row=[],col='',inQ=false;
+  for(var i=0;i<txt.length;i++){
+    var c=txt[i];
+    if(inQ){if(c==='"'&&txt[i+1]==='"'){col+='"';i++;}else if(c==='"'){inQ=false;}else{col+=c;}}
+    else{if(c==='"'){inQ=true;}else if(c===','){row.push(col.trim());col='';}else if(c==='\n'||c==='\r'){if(c==='\n'){row.push(col.trim());rows.push(row);row=[];col='';}}else{col+=c;}}
+  }
+  if(col||row.length){row.push(col.trim());rows.push(row);}
+  return rows;
+}
+
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function testUrl(url, label){
+  var out = document.getElementById('out');
+  out.innerHTML += '<div class="info">⏳ اختبار: '+label+'...</div>';
+  try{
+    var r = await fetch(url+'&t='+Date.now(),{cache:'no-store'});
+    var txt = await r.text();
+    var rows = parseCSV(txt);
+    var l2 = rows.filter(function(r){return r[0]&&/^\d+\.\d+$/.test(r[0].trim());});
+    var l3a = rows.filter(function(r){return r[0]&&/^\d+\.\d+\.\d+$/.test(r[0].trim());});
+    var l4a = rows.filter(function(r){return r[0]&&/^\d+\.\d+\.\d+\.\d+$/.test(r[0].trim());});
+    // Also check col6
+    var l3b = rows.filter(function(r){return r[6]&&/^\d+\.\d+\.\d+$/.test(r[6].trim());});
+    var l4b = rows.filter(function(r){return r[6]&&/^\d+\.\d+\.\d+\.\d+$/.test(r[6].trim());});
+
+    var cls = (l3a.length+l3b.length > 0 && l4a.length+l4b.length > 0) ? 'ok' : (l2.length > 0 ? 'info' : 'err');
+    out.innerHTML += '<div class="'+cls+'"><b>'+label+'</b>: '+rows.length+' صف | L2='+l2.length+' (col0) | L3='+(l3a.length||l3b.length)+' | L4='+(l4a.length||l4b.length)+'</div>';
+
+    if(l2.length > 0){
+      out.innerHTML += '<b>أعمدة أول صف L2 (col0):</b><table><tr><th>العمود</th><th>القيمة</th></tr>';
+      var rr=l2[0];
+      for(var i=0;i<Math.min(rr.length,22);i++){
+        var hl=(i===4||i===5||i===10||i===11||i===18||i===19||i===20)?' class="hl"':'';
+        out.innerHTML+='<tr'+hl+'><td>'+i+'</td><td>'+escH(rr[i].substring(0,60))+'</td></tr>';
+      }
+      out.innerHTML+='</table>';
+    }
+
+    if(l3a.length>0 || l3b.length>0){
+      var l3row = l3a[0] || l3b[0];
+      out.innerHTML += '<b>أعمدة أول صف L3:</b><table><tr><th>العمود</th><th>القيمة</th></tr>';
+      for(var i=0;i<Math.min(l3row.length,22);i++){
+        var hl=(i===6||i===10||i===11)?' class="hl"':'';
+        out.innerHTML+='<tr'+hl+'><td>'+i+'</td><td>'+escH(l3row[i].substring(0,60))+'</td></tr>';
+      }
+      out.innerHTML+='</table>';
+    }
+
+    out.innerHTML += '<pre>أول 8 أسطر:\n'+rows.slice(0,8).map(function(r,i){return 'Row '+i+': '+r.slice(0,8).map(function(v){return '"'+escH(v.substring(0,20))+'"';}).join(', ');}).join('\n')+'</pre>';
+
+  }catch(e){
+    out.innerHTML += '<div class="err">❌ '+label+': '+e.message+'</div>';
+  }
+}
+
+async function run(){
+  document.getElementById('out').innerHTML = '';
+  await testUrl(NEW_URL, 'الرابط الجديد (gid=366726450)');
+  await testUrl(OLD_URL, 'الرابط القديم (بدون gid)');
+}
+</script>
+</body>
+</html>
