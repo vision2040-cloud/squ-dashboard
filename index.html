@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تشخيص CSV</title>
+<style>
+body{font-family:monospace;padding:20px;font-size:12px}
+table{border-collapse:collapse;width:100%;margin-top:10px}
+td,th{border:1px solid #ccc;padding:4px 6px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+th{background:#1a3a5c;color:#fff}
+.hl{background:#fef3c7}
+.btn{background:#1a3a5c;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin:4px}
+pre{background:#1a202c;color:#9ae6b4;padding:12px;border-radius:6px;overflow:auto;max-height:300px;font-size:11px}
+</style>
+</head>
+<body>
+<h2>🔍 تشخيص بيانات CSV المنشور</h2>
+<button class="btn" onclick="runDebug()">▶ تشخيص الآن</button>
+<button class="btn" onclick="document.getElementById('out').innerHTML=''">مسح</button>
+<div id="out"></div>
+
+<script>
+var URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRW21kax9btaMQ5QVhXUgh9jnXC7PSQvpQI9eNRFjAfFNIFgMhM2wHjcebEbz-fgbamqUf-tQ77nU2z/pub?output=csv';
+
+function parseCSV(txt){
+  var rows=[],row=[],col='',inQ=false;
+  for(var i=0;i<txt.length;i++){
+    var c=txt[i];
+    if(inQ){if(c==='"'&&txt[i+1]==='"'){col+='"';i++;}else if(c==='"'){inQ=false;}else{col+=c;}}
+    else{if(c==='"'){inQ=true;}else if(c===','){row.push(col.trim());col='';}else if(c==='\n'||c==='\r'){if(c==='\n'){row.push(col.trim());rows.push(row);row=[];col='';}}else{col+=c;}}
+  }
+  if(col||row.length){row.push(col.trim());rows.push(row);}
+  return rows;
+}
+
+async function runDebug(){
+  var out = document.getElementById('out');
+  out.innerHTML = '<p>⏳ جاري الجلب...</p>';
+  
+  try {
+    var resp = await fetch(URL + '&t=' + Date.now(), {cache:'no-store'});
+    var txt = await resp.text();
+    var rows = parseCSV(txt);
+    
+    var html = '<h3>✅ تم الجلب - طول CSV: ' + txt.length + ' حرف | عدد الصفوف: ' + rows.length + '</h3>';
+    
+    // Find data rows
+    var l2rows = rows.filter(function(r){ return r[0] && /^\d+\.\d+$/.test(r[0].trim()); });
+    var l3rows = rows.filter(function(r){ return r[6] && /^\d+\.\d+\.\d+$/.test(r[6].trim()); });
+    var l4rows = rows.filter(function(r){ return r[6] && /^\d+\.\d+\.\d+\.\d+$/.test(r[6].trim()); });
+    
+    html += '<p>L2 rows: <b>' + l2rows.length + '</b> | L3 rows: <b>' + l3rows.length + '</b> | L4 rows: <b>' + l4rows.length + '</b></p>';
+    
+    // Show first L2 row in detail
+    if(l2rows.length > 0) {
+      html += '<h3>أول صف L2 — كل الأعمدة:</h3><table><tr><th>العمود</th><th>القيمة</th></tr>';
+      var r = l2rows[0];
+      for(var i=0; i<Math.min(r.length, 25); i++) {
+        var hl = (i===4||i===5||i===18||i===19||i===20) ? ' class="hl"' : '';
+        html += '<tr'+hl+'><td>'+i+'</td><td>'+escH(r[i])+'</td></tr>';
+      }
+      html += '</table>';
+    }
+    
+    // Show first L3 row
+    if(l3rows.length > 0) {
+      html += '<h3>أول صف L3:</h3><table><tr><th>العمود</th><th>القيمة</th></tr>';
+      var r3 = l3rows[0];
+      for(var i=0; i<Math.min(r3.length, 25); i++) {
+        var hl = (i===6||i===10||i===11||i===19||i===20) ? ' class="hl"' : '';
+        html += '<tr'+hl+'><td>'+i+'</td><td>'+escH(r3[i])+'</td></tr>';
+      }
+      html += '</table>';
+    }
+    
+    // Show first 15 rows raw
+    html += '<h3>أول 15 صف خام:</h3><pre>';
+    for(var i=0; i<Math.min(rows.length, 15); i++) {
+      html += 'Row ' + i + ': [' + rows[i].slice(0,8).map(function(v){return '"'+escH(v)+'"';}).join(', ') + '...]\n';
+    }
+    html += '</pre>';
+    
+    out.innerHTML = html;
+  } catch(e) {
+    out.innerHTML = '<p style="color:red">❌ فشل: ' + e.message + '</p>';
+  }
+}
+
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
