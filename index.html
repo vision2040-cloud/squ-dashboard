@@ -708,37 +708,38 @@ function parseRowsFull(rows){
 
   // Achievement calculation — three special rules, then polarity-aware fallback
   function calcComp(ach,tgt,base){
-    // Rule 1: both target and achieved are dates → 100%
+    // Rule 1: both target and achieved are dates ? 100%
     if(isDateStr(tgt)&&isDateStr(ach))return 100;
-    // Rule 2: target is date, achieved is percentage → use percentage directly
+    // Rule 2: target is date, achieved is percentage ? use percentage directly
     if(isDateStr(tgt)&&isPctStr(ach)){
       var dp=pn(ach);
-      if(dp===null)return null;
+      if(dp===null)return 0;
       return Math.round(Math.min(Math.max(dp,0),100));
     }
-    // Rule 3: baseline AND target are percentages → adjusted formula
+    // Rule 3: baseline AND target are percentages ? adjusted formula
     if(isPctStr(base)&&isPctStr(tgt)){
       var a3=pn(ach),t3=pn(tgt),b3=pn(base);
-      if(a3===null||t3===null||b3===null)return null;
+      if(a3===null||t3===null||b3===null)return 0;
       var denom=t3-b3;
-      if(denom===0)return null;
+      // FIX: if baseline equals target, assume 100% (fully achieved)
+      if(denom===0)return 100;
       var pct3=((a3-b3)/denom)*100;
-      if(!isFinite(pct3)||pct3<0)return null;
-      return Math.round(pct3);
+      if(!isFinite(pct3))return 0;
+      return Math.round(Math.min(Math.max(pct3,0),100));
     }
     // Fallback: polarity-aware standard formula
     var a=pn(ach),t=pn(tgt);
-    if(a===null||t===null)return null;
+    if(a===null||t===null)return 0;
     var p=pol(base,tgt),pct;
     if(p==='negative'){
-      if(a===0)return null;
+      if(a===0)return 0;
       pct=(t/a)*100;
     } else {
-      if(t===0)return null;
+      if(t===0)return 0;
       pct=(a/t)*100;
     }
-    if(!isFinite(pct)||pct<0)return null;
-    return Math.round(pct);
+    if(!isFinite(pct))return 0;
+    return Math.round(Math.min(Math.max(pct,0),100));
   }
 
   var startIdx=0;
@@ -877,6 +878,7 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
 
 
 
