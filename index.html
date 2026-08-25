@@ -422,8 +422,7 @@ function rOv(){
   var c3=g('kpiL3Count'); if(c3)c3.innerHTML=DB.l3.length+' <span>مبادرة</span>';
   var c4=g('kpiL4Count'); if(c4)c4.innerHTML=DB.l4.length+' <span>آلية</span>';
   // Card 4 – overall ring
-  var vals=[l2p,l3p,l4p].filter(function(v){return v!==null&&!isNaN(v);});
-  var overall=vals.length?Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length):null;
+  var vals=[l2p,l3p,l4p].map(function(v){return (v===null||isNaN(v))?0:v;});var overall=vals.length?Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length):0;
   st('overallPct', overall!==null?overall+'%':'—');
   st('miniL2', l2p!==null?l2p+'%':'—');
   st('miniL3', l3p!==null?l3p+'%':'—');
@@ -810,20 +809,7 @@ function parseRowsFull(rows){
   // or 0) are also ignored when at least one sibling has a weight; if ALL
   // siblings have weight 0/null we fall back to the clamped arithmetic
   // mean so the user still sees a number.
-  function weightedComp(arr){
-    var valid=arr.filter(function(x){return x.completion!==null&&x.completion!==undefined&&!isNaN(x.completion);});
-    if(!valid.length)return null;
-    var withW=valid.filter(function(x){var w=x.weight;return (w!=null)&&!isNaN(w)&&w>0;});
-    var sw=0, swp=0;
-    var src=withW.length?withW:valid;
-    src.forEach(function(x){
-      var w=(withW.length)?x.weight:1;
-      var c=Math.min(Math.max(x.completion,0),100); // clamp 0..100
-      sw+=w; swp+=w*c;
-    });
-    if(sw<=0)return null;
-    return Math.round(swp/sw);
-  }
+  function weightedComp(arr){if(!arr||arr.length===0)return 0;var sw=0, swp=0;arr.forEach(function(x){var w=(x.weight&&!isNaN(parseFloat(x.weight)))?parseFloat(x.weight):1;var c=Math.min(Math.max((x.completion===null||x.completion===undefined||isNaN(parseFloat(x.completion)))?0:parseFloat(x.completion),0),100);sw+=w; swp+=w*c;});if(sw<=0)return 0;return Math.round(swp/sw);}
 
   var depts=DEPTS.map(function(d){
     var dl2=l2.filter(function(k){return (k.owner||'').trim()===d.name.trim();});
@@ -896,3 +882,6 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
+
+
