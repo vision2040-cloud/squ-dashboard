@@ -721,8 +721,10 @@ function parseRowsFull(rows){
       var a3=pn(ach),t3=pn(tgt),b3=pn(base);
       if(a3===null||t3===null||b3===null)return 0;
       var denom=t3-b3;
-      // FIX: if baseline equals target, assume 100% (fully achieved)
-      if(denom===0)return 100;
+      // FIX: When baseline equals target (e.g., 4% = 4%), handle correctly
+      if(denom===0){
+        return (a3 >= t3) ? 100 : 0;
+      }
       var pct3=((a3-b3)/denom)*100;
       if(!isFinite(pct3))return 0;
       return Math.round(Math.min(Math.max(pct3,0),100));
@@ -878,6 +880,7 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
 
 
 
