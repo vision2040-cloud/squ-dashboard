@@ -796,12 +796,7 @@ function parseRowsFull(rows){
     {name:'مكتب رئيس الجامعة',color:'#e53e3e',icon:'🏛️'}
   ];
 
-  function meanComp(arr){
-    var v=arr.filter(function(x){return x.completion!==null&&x.completion!==undefined&&!isNaN(x.completion);})
-             .map(function(x){return x.completion;});
-    if(!v.length)return null;
-    return Math.round(v.reduce(function(s,x){return s+x;},0)/v.length);
-  }
+  function meanComp(arr){if(!arr||arr.length===0)return 0;var sum=0;arr.forEach(function(x){var c=(x.completion===null||x.completion===undefined||isNaN(x.completion))?0:x.completion;sum+=c;});return Math.round(sum/arr.length);}
   // Weighted progress with per-element clamp at 100% to neutralise outliers
   // (e.g. one mechanism reporting 5000%).  Element-level rows still show
   // their real percentage — clamping happens only inside the aggregate.
@@ -882,6 +877,7 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
 
 
 
