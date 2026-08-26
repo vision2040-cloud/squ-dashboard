@@ -664,7 +664,53 @@ function parseCSV(txt){
 //    Negative polarity (target < baseline): completion = target / achieved × 100.
 //    Returns null when achieved or target is missing / non-numeric.
 function parseRowsFull(rows){
-  var l2=[],l3=[],l4=[];
+  var l2=\[\],l3=\[\],l4=\[\];
+  // ????????????????????????????????????????????????????????????????????????
+  // Process CSV rows into L2, L3, L4 with dynamic completion calculation
+  // ????????????????????????????????????????????????????????????????????????
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    if (!row || row.length < 5) continue;
+    
+    var code = sv(row[0]);
+    var name = sv(row[1]);
+    var level = sv(row[2]);
+    var achieved = sv(row[3]);
+    var target = sv(row[4]);
+    var baseline = sv(row[5]) || null;
+    var weight = sv(row[6]) || null;
+    var owner = sv(row[7]) || '';
+    var domain = sv(row[8]) || '';
+    var l2_code = sv(row[9]) || null;
+    var l3_code = sv(row[10]) || null;
+    
+    if (!code || !hv(code)) continue;
+    
+    // Create object with computed completion
+    var obj = {
+      code: code,
+      name: name,
+      achieved: achieved,
+      target: target,
+      baseline: baseline,
+      weight: weight,
+      owner: owner,
+      domain: domain,
+      completion: calcComp(achieved, target, baseline)
+    };
+    
+    // Add to appropriate level
+    if (level === 'L2' || !level) {
+      l2.push(obj);
+    } else if (level === 'L3') {
+      obj.l2 = l2_code;
+      l3.push(obj);
+    } else if (level === 'L4') {
+      obj.l3 = l3_code;
+      l4.push(obj);
+    }
+  }
+
 
   // Strict numeric parser. Handles Arabic-indic digits, %, commas, spaces.
   // Returns null for empty / non-numeric — never silently 0.
@@ -877,6 +923,7 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
 
 
 
