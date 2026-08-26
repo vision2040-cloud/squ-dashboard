@@ -707,99 +707,50 @@ function parseRowsFull(rows){
   }
 
   // Achievement calculation — three special rules, then polarity-aware fallback
-  function calcComp(ach,tgt,base){
-    // Rule 1: both target and achieved are dates ? 100%
-    if(isDateStr(tgt)&&isDateStr(ach))return 100;
-    // Rule 2: target is date, achieved is percentage ? use percentage directly
-    if(isDateStr(tgt)&&isPctStr(ach)){
-      var dp=pn(ach);
-      if(dp===null)return 0;
-      return Math.round(Math.min(Math.max(dp,0),100));
-    }
-    // Rule 3: baseline AND target are percentages ? adjusted formula
-    if(isPctStr(base)&&isPctStr(tgt)){
-      var a3=pn(ach),t3=pn(tgt),b3=pn(base);
-      if(a3===null||t3===null||b3===null)return 0;
-      var denom=t3-b3;
-      // FIX: When baseline equals target (e.g., 4% = 4%), handle correctly
-      if(denom===0){
-        return (a3 >= t3) ? 100 : 0;
-      }
-      var pct3=((a3-b3)/denom)*100;
-      if(!isFinite(pct3))return 0;
-      return Math.round(Math.min(Math.max(pct3,0),100));
-    }
-    // Fallback: polarity-aware standard formula
-    var a=pn(ach),t=pn(tgt);
-    if(a===null||t===null)return 0;
-    var p=pol(base,tgt),pct;
-    if(p==='negative'){
-      if(a===0)return 0;
-      pct=(t/a)*100;
-    } else {
-      if(t===0)return 0;
-      pct=(a/t)*100;
-    }
-    if(!isFinite(pct))return 0;
-    return Math.round(Math.min(Math.max(pct,0),100));
+  function detectPolarity(baseline, target) {
+  var b = pn(baseline);
+  var t = pn(target);
+  if (b === null || t === null) return 'positive';
+  if (t < b) return 'negative';
+  return 'positive';
+}
+function calcComp(ach, tgt, base) {
+  var a = pn(ach);
+  var t = pn(tgt);
+  var b = (base !== null && base !== undefined) ? pn(base) : null;
+  
+  if (a === null) return null;
+  if (t === null) return null;
+  
+  if (t === 0) {
+    return (a <= 0) ? 100 : 0;
   }
-
-  var startIdx=0;
-  for(var si=0;si<Math.min(rows.length,20);si++){
-    var sr=rows[si];
-    if(sr&&sr.length>0&&/^\d+\.\d+$/.test((sr[0]||'').trim())){startIdx=si;break;}
+  
+  if (b !== null) {
+    var denominator = t - b;
+    if (denominator === 0) {
+      return (a >= t) ? 100 : 0;
+    }
+    var progress = ((a - b) / denominator) * 100;
+    if (!isFinite(progress)) return null;
+    return Math.round(Math.min(Math.max(progress, 0), 100));
   }
-
-  var lastOwner='';
-
-  for(var i=startIdx;i<rows.length;i++){
-    var r=rows[i];if(!r||r.length<7)continue;
-    var c0=sv(r[0]),c6=sv(r[6]);
-
-    if(c0&&/^\d+\.\d+$/.test(c0)){
-      var bl2=sv(r[3]),tgt2=sv(r[4]),ach2=sv(r[5]);
-      var comp2=calcComp(ach2,tgt2,bl2);
-      lastOwner=sv(r[2]);
-      l2.push({code:c0,name:sv(r[1]),owner:lastOwner,
-        baseline:bl2,target:tgt2,achieved:ach2,
-        completion:comp2,domain:c0.split('.')[0],
-        weight:pn(r[18]),actual:pn(r[20])});
-    }
-
-    if(c6&&/^\d+\.\d+\.\d+$/.test(c6)){
-      var p=c6.split('.');
-      var bl3=sv(r[9]),tgt3=sv(r[10]),ach3=sv(r[11]);
-      var comp3=calcComp(ach3,tgt3,bl3);
-      l3.push({code:c6,domain:p[0],l2:p[0]+'.'+p[1],
-        initiative:sv(r[7]),kpi:sv(r[8]),baseline:bl3,
-        target:tgt3,achieved:ach3,
-        entity:sv(r[12]),responsible:sv(r[13]),
-        q1:sv(r[14]),q2:sv(r[15]),q3:sv(r[16]),q4:sv(r[17]),
-        weight:pn(r[18]),completion:comp3,actual:pn(r[20])});
-    }
-
-    if(c6&&/^\d+\.\d+\.\d+\.\d+$/.test(c6)){
-      var p4=c6.split('.');
-      var bl4=sv(r[9]),tgt4=sv(r[10]),ach4=sv(r[11]);
-      var comp4=calcComp(ach4,tgt4,bl4);
-      l4.push({code:c6,domain:p4[0],l2:p4[0]+'.'+p4[1],l3:p4[0]+'.'+p4[1]+'.'+p4[2],
-        initiative:sv(r[7]),kpi:sv(r[8]),baseline:bl4,
-        target:tgt4,achieved:ach4,
-        entity:sv(r[12]),responsible:sv(r[13]),
-        q1:sv(r[14]),q2:sv(r[15]),q3:sv(r[16]),q4:sv(r[17]),
-        weight:pn(r[18]),completion:comp4,actual:pn(r[20])});
-    }
+  
+  var polarity = detectPolarity(base, tgt);
+  var pct;
+  
+  if (polarity === 'negative') {
+    if (a === 0) return 0;
+    pct = (t / a) * 100;
+  } else {
+    pct = (a / t) * 100;
   }
+  
+  if (!isFinite(pct)) return null;
+  return Math.round(Math.min(Math.max(pct, 0), 100));
+}
 
-  var DEPTS=[
-    {name:'الشؤون الأكاديمية وخدمة المجتمع',color:'#2e6da4',icon:'📚'},
-    {name:'الشؤون الإدارية والمالية',color:'#d97706',icon:'💼'},
-    {name:'الدراسات العليا والبحث العلمي',color:'#805ad5',icon:'🔬'},
-    {name:'مساعدة الرئيس  للتعاون الدولي',color:'#00a86b',icon:'🌍'},
-    {name:'مكتب رئيس الجامعة',color:'#e53e3e',icon:'🏛️'}
-  ];
-
-  function meanComp(arr){if(!arr||arr.length===0)return 0;var sum=0;arr.forEach(function(x){var c=(x.completion===null||x.completion===undefined||isNaN(x.completion))?0:x.completion;sum+=c;});return Math.round(sum/arr.length);}
+function meanComp(arr){if(!arr||arr.length===0)return 0;var sum=0;arr.forEach(function(x){var c=(x.completion===null||x.completion===undefined||isNaN(x.completion))?0:x.completion;sum+=c;});return Math.round(sum/arr.length);}
   // Weighted progress with per-element clamp at 100% to neutralise outliers
   // (e.g. one mechanism reporting 5000%).  Element-level rows still show
   // their real percentage — clamping happens only inside the aggregate.
@@ -880,6 +831,8 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
+
 
 
 
