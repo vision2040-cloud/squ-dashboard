@@ -386,6 +386,7 @@ function compTxt(p){return (p===null||p===undefined||isNaN(p))?'—':p+'%';}
 function pbar(p){
   if(p===null||p===undefined||isNaN(p)){
     return '<div class="pb"><div class="pbar"><div class="pf" style="width:0%;background:#cbd5e0"></div></div><div class="pp" style="color:#718096">—</div></div>';
+    , "excluded": true
   }
   var c=cc(p),w=Math.min(Math.max(p,0),100);
   return '<div class="pb"><div class="pbar"><div class="pf" style="width:'+w+'%;background:'+c+'"></div></div><div class="pp" style="color:'+c+'">'+p+'%</div></div>';
@@ -882,6 +883,7 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
 
 
 
