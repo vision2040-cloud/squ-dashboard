@@ -818,6 +818,52 @@ function doRefresh(){
 }
 
 // Б∙░Б∙░Б∙░ INIT Б∙░Б∙░Б∙░
+// ????????????????????????????????????????????????????????????
+// recalculateAllData: езгои мсгх лЦМз гАЦдтягй
+// йсйноЦ гАоФгА гАлоМои: detectPolarity + calcComp
+// ????????????????????????????????????????????????????????????
+function recalculateAllData() {
+  console.log('?? лгяМ езгои мсгх гАхМгДгй хгсйногЦ гАЦДЕлМи гАлоМои...');
+  
+  var count = 0;
+  
+  // езгои мсгх L2 Indicators
+  if (DB.l2 && Array.isArray(DB.l2)) {
+    DB.l2.forEach(function(ind) {
+      var oldComp = ind.completion;
+      ind.completion = calcComp(ind.achieved, ind.target, ind.baseline);
+      if (oldComp !== ind.completion) {
+        count++;
+        if (ind.code === '1.1' || ind.code === '1.2' || ind.code === '1.3') {
+          console.log(`  ${ind.code}: ${oldComp} ? ${ind.completion}`);
+        }
+      }
+    });
+  }
+  
+  // езгои мсгх L3 Initiatives
+  if (DB.l3 && Array.isArray(DB.l3)) {
+    DB.l3.forEach(function(init) {
+      var oldComp = init.completion;
+      init.completion = calcComp(init.achieved, init.target, init.baseline);
+      if (oldComp !== init.completion) count++;
+    });
+  }
+  
+  // езгои мсгх L4 Tactics
+  if (DB.l4 && Array.isArray(DB.l4)) {
+    DB.l4.forEach(function(tac) {
+      var oldComp = tac.completion;
+      tac.completion = calcComp(tac.achieved, tac.target, tac.baseline);
+      if (oldComp !== tac.completion) count++;
+    });
+  }
+  
+  console.log(`? йЦ езгои мсгх ${count} Цдтя хгсйногЦ гАЦДЕлМи гАлоМои`);
+  return count;
+}
+
+
 window.onload=function(){
   setLive('ready');
   renderAll();
@@ -831,6 +877,7 @@ window.onload=function(){
 </script>
 </body>
 </html>
+
 
 
 
